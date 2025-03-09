@@ -71,6 +71,6 @@ func BroadcastSpinMessage(msg string) {
     sseClientsM.Lock()
     defer sseClientsM.Unlock()
     for _, c := range sseClients {
-        c <- msg
+        c <- "data: "+msg
     }
 }
