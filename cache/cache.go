@@ -9,34 +9,49 @@ import (
 	"github.com/wcbn/spinitron-proxy/api"
 )
 
+// MAX_CACHE_SIZE determines the maximum number of cache entries that can be 
+// stored at once.
 const MAX_CACHE_SIZE = 2000
 
+// Cache wraps a theine.Cache for storing []byte responses keyed by string.
+// Theine is a simple, thread-safe, in-memory cache library. It is used here
+// to store responses from the Spinitron API.
 type Cache struct {
-	tcache *theine.Cache[string, []byte]
+	tcache *theine.Cache[string, []byte] // Underlying cache from theine-go library.
 }
 
+// Initializes the theine cache
 func (c *Cache) Init() {
+	// If tcache is already set, return immediately and do nothing.
 	if c.tcache != nil {
 		return
 	}
 
+	// Build a theine cache with our maximum size. Provide a RemovalListener
+	// to remove all related items from the cache when a collection path expires.
 	cache, err := theine.NewBuilder[string, []byte](MAX_CACHE_SIZE).RemovalListener(func(k string, v []byte, r theine.RemoveReason) {
-		// when a collection path expires
-		if api.IsCollectionPath(k) && r == theine.EXPIRED {
+		// RemovalListener is called whenever an item is removed from the cache.
+		// We're interested in the RemoveReason, which tells us why the item was
+		// removed. We only care about expired items here.
 
-			// remove all entries for said collection
+		// When a collection path expires, we also want to remove all associated
+		// resources in that collection.
+		if api.IsCollectionPath(k) && r == theine.EXPIRED {
 			c.evictCollection(api.GetCollectionName(k))
 		}
-
 	}).Build()
 
 	if err != nil {
+		// If building the cache fails, panic to crash early.
 		panic(err)
 	}
 
+	// Assign the newly created cache to our struct.
 	c.tcache = cache
 }
 
+// Get retrieves a value from the cache by key. It returns the value (if found)
+// and a boolean to indicate whether the key was present in the cache.
 func (c *Cache) Get(key string) ([]byte, bool) {
 	tick := time.Now()
 	x, y := c.tcache.Get(key)
@@ -44,27 +59,39 @@ func (c *Cache) Get(key string) ([]byte, bool) {
 	return x, y
 }
 
+// Set adds a new key-value pair to the cache with a time-to-live determined by 
+// getTTL(key) (defined below). Returns true if set was successful.
 func (c *Cache) Set(key string, value []byte) bool {
 	tick := time.Now()
+	// Theine supports setting entries with a TTL. 
+	// The '1' argument is for cost (weight) of the entry, used for cache 
+	// eviction strategies. We don't use it here, so it's set to 1 for all
+	// entries.
 	res := c.tcache.SetWithTTL(key, value, 1, getTTL(key))
 	log.Println("cache.set", time.Since(tick), key)
 	return res
 }
 
+// MakeCacheKey uses request info to build a consistent cache key. If the path 
+// is a "collection path," it appends the query parameters.
 func (c *Cache) MakeCacheKey(req *http.Request) string {
 	result := req.URL.Path
+	// If it's a collection path, include query parameters since they may change the data.
 	if api.IsCollectionPath(result) {
 		result += "?" + req.URL.Query().Encode()
 	}
 	return result
 }
 
-// getTTL contains the cache expiration rules for each endpoint
+// getTTL defines how long each type of endpoint is cached. Resource paths and
+// collection paths have different time durations.
 func getTTL(key string) time.Duration {
+	// If it's a resource path, we cache for 3 minutes.
 	if api.IsResourcePath(key) {
 		return 3 * time.Minute
 	}
 
+	// Otherwise, get the collection name and look up its specific TTL.
 	c := api.GetCollectionName(key)
 
 	var ttl = map[string]time.Duration{
@@ -77,8 +104,13 @@ func getTTL(key string) time.Duration {
 	return ttl[c]
 }
 
+// evictCollection removes all cached entries from a specific collection.
+// This is called when a collection item is removed due to expiration.
 func (c *Cache) evictCollection(name string) {
 	tick := time.Now()
+	// Range over every key in the cache. If the key belongs to the same 
+	// collection name, delete that entry. This is done concurrently via a 
+	// goroutine (go keyword).
 	c.tcache.Range(func(k string, v []byte) bool {
 		if api.GetCollectionName(k) == name {
 			go c.tcache.Delete(k)
@@ -88,6 +120,7 @@ func (c *Cache) evictCollection(name string) {
 	log.Println("cache.evicting", time.Since(tick))
 }
 
+// Len returns the current number of entries in the cache.
 func (c *Cache) Len() int {
 	return c.tcache.Len()
 }

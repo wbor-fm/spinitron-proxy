@@ -4,8 +4,8 @@ import (
 	"testing"
 )
 
+// Checks known resource paths and expects them to match.
 func TestIsResourcePath(t *testing.T) {
-
 	known := []string{
 		"/api/personas/1",
 		"/api/shows/2",
@@ -22,8 +22,8 @@ func TestIsResourcePath(t *testing.T) {
 	}
 }
 
+// Checks known collection paths and expects them to be identified correctly.
 func TestIsCollectionPath(t *testing.T) {
-
 	known := []string{
 		"/api/personas",
 		"/api/shows",
@@ -39,8 +39,8 @@ func TestIsCollectionPath(t *testing.T) {
 	}
 }
 
+// Ensures that resource-like paths aren't identified as collection paths.
 func TestIsNotCollectionPath(t *testing.T) {
-
 	known := []string{
 		"/api/personas/1",
 		"/images/Persona/16/65/166599-img_profile.225x225.jpg?v=123",
@@ -54,6 +54,8 @@ func TestIsNotCollectionPath(t *testing.T) {
 	}
 }
 
+// Checks various path formats to verify correct extraction of the collection 
+// name.
 func TestGetCollectionName(t *testing.T) {
 	s := []string{
 		"api/foo",
