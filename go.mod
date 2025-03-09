@@ -1,4 +1,4 @@
-module github.com/wcbn/spinitron-proxy
+module github.com/WBOR-91-1-FM/spinitron-proxy
 
 go 1.22
 

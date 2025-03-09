@@ -5,11 +5,11 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/WBOR-91-1-FM/spinitron-proxy/api"
 	"github.com/Yiling-J/theine-go"
-	"github.com/wcbn/spinitron-proxy/api"
 )
 
-// MAX_CACHE_SIZE determines the maximum number of cache entries that can be 
+// MAX_CACHE_SIZE determines the maximum number of cache entries that can be
 // stored at once.
 const MAX_CACHE_SIZE = 2000
 
@@ -61,6 +61,8 @@ func (c *Cache) Get(key string) ([]byte, bool) {
 
 // Set adds a new key-value pair to the cache with a time-to-live determined by 
 // getTTL(key) (defined below). Returns true if set was successful.
+// If setting to a key that already exists, the value is updated and the TTL is
+// reset (done by the theine library).
 func (c *Cache) Set(key string, value []byte) bool {
 	tick := time.Now()
 	// Theine supports setting entries with a TTL. 
@@ -76,9 +78,22 @@ func (c *Cache) Set(key string, value []byte) bool {
 // is a "collection path," it appends the query parameters.
 func (c *Cache) MakeCacheKey(req *http.Request) string {
 	result := req.URL.Path
-	// If it's a collection path, include query parameters since they may change the data.
+
+	// If it's a collection path, include query parameters since they may change
+	// the data, but skip the `forceRefresh` parameter if present (since it's
+	// only used to skip the cache, and a key with `forceRefresh=1` is the same
+	// as a key without it - in other words, requests without the param would
+	// return potentially old data).
 	if api.IsCollectionPath(result) {
-		result += "?" + req.URL.Query().Encode()
+		// Copy the query to avoid mutating the original.
+        q := req.URL.Query()
+        q.Del("forceRefresh") // Remove the param from the key
+
+		// Encode the query parameters and append them to the path.
+        encoded := q.Encode()
+        if encoded != "" {
+            result += "?" + encoded
+        }
 	}
 	return result
 }
@@ -117,7 +132,7 @@ func (c *Cache) evictCollection(name string) {
 		}
 		return true
 	})
-	log.Println("cache.evicting", time.Since(tick))
+	log.Println("cache.evicting", time.Since(tick), name)
 }
 
 // Len returns the current number of entries in the cache.

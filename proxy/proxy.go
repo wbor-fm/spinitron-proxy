@@ -10,15 +10,15 @@ import (
 	"os"
 	"time"
 
-	"github.com/wcbn/spinitron-proxy/cache"
+	"github.com/WBOR-91-1-FM/spinitron-proxy/cache"
 )
 
 // Lingering questions: what is `io.NopCloser(bytes.NewReader(value)),`
 // and why do we close resp.Body before reassigning it?
 // What is reassignment?
 
-
 // Custom transport that checks a local cache before making an external request.
+// (Unless the request has ?forceRefresh=1, in which case it skips the cache.)
 // It implements http.RoundTripper, which is the interface used by http.Client.
 type TransportWithCache struct {
 	Transport http.RoundTripper // Underlying transport used if a cache miss.
@@ -28,29 +28,36 @@ type TransportWithCache struct {
 // RoundTrip is the core method of http.RoundTripper. It is called for each
 // request to check the cache first, then fall back to a *real* network request.
 func (t *TransportWithCache) RoundTrip(req *http.Request) (*http.Response, error) {
+
+	// Check if the request has ?forceRefresh=1 to skip cache retrieval
+    forceRefresh := (req.URL.Query().Get("forceRefresh") == "1")
+
 	// Generate a cache key based on the incoming HTTP request.
 	key := t.Cache.MakeCacheKey(req)
 
-	// Attempt to retrieve the response from the cache (e.g. if it was cached 
-	// before). The second return value is a boolean indicating whether the key
-	// was found in the cache.
-	value, found := t.Cache.Get(key)
-
-	if found {
-		// Construct a new response with the cached data.
-		resp := &http.Response{
-			StatusCode: http.StatusOK,
-			Header:     make(http.Header),
-			Body:       io.NopCloser(bytes.NewReader(value)),
-			// Wrap cached byte slice as a readable stream.
-		}
-		// Set the appropriate Content-Type header for JSON responses.
-		resp.Header.Set("Content-Type", "application/json")
-		return resp, nil // `nil` means no error occurred.
+	// If forceRefresh is NOT set, try retrieving from the cache as normal.
+    if !forceRefresh {
+		// Attempt to retrieve the response from the cache (e.g. if it was 
+		// cached before). The second return value is a boolean indicating 
+		// whether the key was found in the cache.
+        value, found := t.Cache.Get(key)
+        if found {
+            // Construct a new response with the cached data.
+            resp := &http.Response{
+                StatusCode: http.StatusOK,
+                Header:     make(http.Header),
+                Body:       io.NopCloser(bytes.NewReader(value)),
+            }
+            resp.Header.Set("Content-Type", "application/json")
+            return resp, nil // `nil` means no error occurred.
+        }
+    } else {
+		// If forceRefresh is set, log that we're skipping the cache.
+		log.Println("cache.skip", key, "(forceRefresh)")
 	}
 
-	// If not found in cache, make the actual request via underlying transport.
-	tick := time.Now()  // Record the time before making the request.
+	// If forceRefresh IS set, or cache was a miss, do the real network request.
+	tick := time.Now()
 	resp, err := t.Transport.RoundTrip(req) // Make the request, get response.
 	if err != nil {
 		// If there was an error making the request, return it immediately.
@@ -70,18 +77,19 @@ func (t *TransportWithCache) RoundTrip(req *http.Request) (*http.Response, error
 		// If there was an error reading the response body, return immediately.
 		return nil, err
 	}
-
-	// The response body must be closed before reassigning. We then wrap the
-	// data in a new read buffer so it can be read again later.
+	// The response body must be closed before reassigning.
 	resp.Body.Close()
-	resp.Body = io.NopCloser(bytes.NewReader(data))
 
+	// Wrap data in a new ReadCloser so the rest of the chain can read it.
+	resp.Body = io.NopCloser(bytes.NewReader(data))
 	log.Println("request.made", time.Since(tick), key)
 
-	// Store the response body data in the cache at the given key.
-	t.Cache.Set(key, data)
+	// Even if forceRefresh was set, we still store the new data in the cache,
+    // so that subsequent requests without forceRefresh can use the updated 
+	// data.
+    t.Cache.Set(key, data)
 
-	// Return the real response to the client who made the request.
+    // Return the fresh response to the client.
 	return resp, err
 }
 
