@@ -20,17 +20,22 @@ func main() {
 	// it is hardcoded).
 	// If the URL were to be provided by the user, we would need to handle the
 	// error and return a message to the user.
-	url, _ := url.Parse(spinitronBaseURL)
+	parsedURL, _ := url.Parse(spinitronBaseURL)
 
 	// Create a new reverse proxy that injects the API token.
-	proxy := proxy.NewReverseProxy(tokenEnvVarName, url)
+	proxy := proxy.NewReverseProxy(tokenEnvVarName, parsedURL)
 
+	// Normal proxy routes: /api/ and /images/
 	// Register HTTP handlers so that any GET requests to /api/ or /images/ go 
 	// through our custom reverse proxy (the proxy we created above).
 	http.Handle("GET /api/", proxy)
 	http.Handle("GET /images/", proxy)
 
-	// POST route to trigger an internal GET request for /api/spins
+	// SSE Endpoint
+	http.HandleFunc("/spin-events", spinEventsHandler)
+
+	// POST route to trigger an internal GET request for /api/spins and 
+	// broadcast a message to all SSE clients.
 	// (In the future: may consider adding authentication to this route
 	// to prevent unauthorized access and abuse.)
 	http.HandleFunc("/trigger/spins", func(w http.ResponseWriter, r *http.Request) {
@@ -48,7 +53,6 @@ func main() {
             return
         }
         defer resp.Body.Close()
-
         // Read entire body so that the data flows through to our caching 
 		// mechanism. TL;DR: this line is important because without it, the
 		// response body is not read and the cache is not updated! Reading the
@@ -56,6 +60,9 @@ func main() {
 		// the proxy logic via `t.Cache.Set(key, data)` which is called when the
 		// response status is OK (handled in proxy.go).
         _, _ = io.ReadAll(resp.Body)
+
+		BroadcastSpinMessage("new spin data")
+		log.Println("sse.broadcast", len(sseClients))
 
         w.WriteHeader(http.StatusOK)
         w.Write([]byte("Forced refresh of /api/spins. Cache updated."))

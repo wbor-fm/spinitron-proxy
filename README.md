@@ -1,4 +1,4 @@
-# Spinitron proxy server
+# spinitron-proxy
 
 Developers using the Spinitron API must adhere to the following terms of service:
 
@@ -12,7 +12,9 @@ With that in mind, this little server...
 
 - forwards requests from a client (e.g. a mobile app) to Spinitron with the developer's API key
 - is read-only i.e. it only services GET requests
-- includes an in-memory cache mechanism optimized for https://github.com/dctalbot/spinitron-mobile-app
+- includes an in-memory cache mechanism optimized for <https://github.com/dctalbot/spinitron-mobile-app>
+- exposes a POST endpoint that Spinitron can use to let the app know when a new spin arrives
+- hosts a SSE stream to let downstream consumers know when new data is available, in real-time
 
 ## Cache strategy
 
@@ -26,32 +28,23 @@ With that in mind, this little server...
 
 - When selecting an endpoint that returns a list e.g. `/spins?`, `/spins?page=1`
 - Query parameters are not ignored
-- TTL depends on the collection. See comments in `cache.go` for details
+- TTL depends on the collection:
+  - `personas`: 5m
+  - `shows`: 5m
+  - `playlists`: 3m
+  - `spins`: 30s
 - Upon expiration, all caches for the same collection are invalidated e.g. When `/spins?page=1` expires, `/spins?page=3` is also invalidated (and vice-versa).
 
 ## How to deploy
-
-This software is distributed as container images which are hosted [on GitHub](https://github.com/wcbn/spinitron-proxy/pkgs/container/spinitron-proxy).
 
 The following architectures are supported: `linux/amd64`, `linux/arm/v7`, `linux/arm64`, `linux/ppc64le`, and `linux/s390x`.
 
 Container-based services are supported by most cloud providers. The memory and CPU requirements are extremely minimal, so just pick the cheapest option.
 
-### AWS Lightsail
-
-1. Create a new container service
-1. Create a new deployment
-1. Set the image to `ghcr.io/wcbn/spinitron-proxy:latest`
-1. Set an environment variable named `SPINITRON_API_KEY` with the value of your API key
-1. Set the port to 8080, HTTP
-1. Use the container name as the public endpoint
-1. Set the health check to `/`
-1. Save and deploy
-
 ## Related Projects
 
-- https://github.com/dctalbot/react-spinitron
-- https://github.com/dctalbot/spinitron-mobile-app
+- <https://github.com/dctalbot/react-spinitron>
+- <https://github.com/dctalbot/spinitron-mobile-app>
 
 ## How to Develop
 
@@ -61,5 +54,5 @@ Container-based services are supported by most cloud providers. The memory and C
 - Spinitron API key
 
 1. Make changes to `main.go`
-1. Run `SPINITRON_API_KEY=XXX go run main.go`
-1. Make [some requests](https://spinitron.github.io/v2api/) e.g. `curl "localhost:8080/api/spins"`
+2. Run `SPINITRON_API_KEY=XXX go run main.go sse.go`
+3. Make [some requests](https://spinitron.github.io/v2api/) e.g. `curl "localhost:8080/api/spins"`
