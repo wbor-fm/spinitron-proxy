@@ -41,6 +41,15 @@ The following architectures are supported: `linux/amd64`, `linux/arm/v7`, `linux
 
 Container-based services are supported by most cloud providers. The memory and CPU requirements are extremely minimal, so just pick the cheapest option.
 
+1. Change environment variables in the `Makefile`:
+   - `IMAGE_NAME`
+   - `CONTAINER_NAME`
+   - `NETWORK_NAME` (default: `spinitron-proxy-network`).
+   - `APP_PORT` (defaults to exposing `4001` on the host, speaking to `8080` in the container)
+   - `DOCKER_TOOL` (default: `docker`, but also works for `podman`)
+2. Set the Spinitron API key variable: `export SPINITRON_API_KEY=`
+3. Run: `make`
+
 ## Related Projects
 
 - <https://github.com/dctalbot/react-spinitron>
@@ -51,8 +60,8 @@ Container-based services are supported by most cloud providers. The memory and C
 ### Requirements
 
 - Go (version specified in `go.mod`)
-- Spinitron API key
+- A Spinitron API key
 
-1. Make changes to `main.go`
-2. Run `SPINITRON_API_KEY=XXX go run main.go sse.go`
+1. Make changes to the app
+2. Run `SPINITRON_API_KEY=XXX go run .`
 3. Make [some requests](https://spinitron.github.io/v2api/) e.g. `curl "localhost:8080/api/spins"`

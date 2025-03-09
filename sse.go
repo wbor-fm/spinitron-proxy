@@ -42,6 +42,7 @@ func spinEventsHandler(w http.ResponseWriter, r *http.Request) {
             if c == msgChan {
 				// Slice the client out of the array
                 sseClients = append(sseClients[:i], sseClients[i+1:]...)
+				log.Println("sse.disconnect", len(sseClients))
                 break
             }
         }
