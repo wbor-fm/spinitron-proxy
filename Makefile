@@ -20,7 +20,9 @@ logsf:
 
 build:
 	@echo "Building $(IMAGE_NAME)..."
-	$(DOCKER_TOOL) network create $(NETWORK_NAME)
+	@if ! $(DOCKER_TOOL) network ls --format "{{.Name}}" | grep -q "^$(NETWORK_NAME)$$"; then \
+		$(DOCKER_TOOL) network create $(NETWORK_NAME); \
+	fi
 	$(DOCKER_TOOL) build --platform=linux/amd64 --quiet --tag $(IMAGE_NAME) .
 
 start: run
