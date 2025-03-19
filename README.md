@@ -14,7 +14,7 @@ With that in mind, this little server...
 - is read-only i.e. it only services GET requests
 - includes an in-memory cache mechanism optimized for <https://github.com/dctalbot/spinitron-mobile-app>
 - exposes a POST endpoint that Spinitron can use to let the app know when a new spin arrives
-- hosts a SSE stream to let downstream consumers know when new data is available, in real-time
+- hosts a SSE stream to let downstream consumers know when new spins are posted, in real-time
   - works with [our watchdog service](https://github.com/WBOR-91-1-FM/wbor-api-watchdog) to forward new spins to a RabbitMQ exchange
 
 ## Cache strategy

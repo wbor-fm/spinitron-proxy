@@ -13,11 +13,6 @@ import (
 const tokenEnvVarName = "SPINITRON_API_KEY"
 const spinitronBaseURL = "https://spinitron.com"
 
-// TODO: don't broadcast "new spin data" JUST on receipt of a POST request.
-// Any request that updates the cache, should broadcast a message to all clients. 
-// This will require some refactoring of the proxy logic to allow for a callback
-// function to be passed in that is called when the cache is updated.
-
 func main() {
 	// Parse the base URL for Spinitron using the net/url package.
 	// Parse() returns a URL struct and an error if there is one, but here we're
@@ -39,8 +34,9 @@ func main() {
 	// SSE Endpoint
 	http.HandleFunc("/spin-events", spinEventsHandler)
 
-	// POST route to trigger an internal GET request for /api/spins and 
-	// broadcast a message to all SSE clients.
+	// POST route to trigger an internal GET request for /api/spins to force a
+	// refresh of the cache. This is used by Spinitron to trigger a refresh of
+	// the cache when new spins POSTed by a DJ or Automation.
 	// (In the future: may consider adding authentication to this route
 	// to prevent unauthorized access and abuse.)
 	http.HandleFunc("/trigger/spins", func(w http.ResponseWriter, r *http.Request) {
