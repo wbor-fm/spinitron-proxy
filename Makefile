@@ -1,7 +1,7 @@
 .PHONY: build start stop logs push
 
-IMAGE_NAME = spinitron-proxy
-CONTAINER_NAME = spinitron-proxy-container
+IMAGE_NAME = spinitron-proxy-image
+CONTAINER_NAME = spinitron-proxy
 NETWORK_NAME = spinitron-proxy-network
 APP_PORT = 4001
 
