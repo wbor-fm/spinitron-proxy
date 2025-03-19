@@ -29,7 +29,7 @@ start: run
 
 run: stop
 	$(DOCKER_TOOL) run --platform=linux/amd64 -d --restart unless-stopped \
-		--env SPINITRON_API_KEY=$$SPINITRON_API_KEY \
+		--env-file .env \
 		-p $(APP_PORT):8080 \
 		--network $(NETWORK_NAME) \
 		--name $(CONTAINER_NAME) \
