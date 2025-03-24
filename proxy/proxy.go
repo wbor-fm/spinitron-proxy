@@ -100,8 +100,12 @@ func NewReverseProxy(tokenEnvVarName string, target *url.URL) *httputil.ReverseP
 	// Retrieve the Spinitron API token from the environment.
 	t := os.Getenv(tokenEnvVarName)
 	if t == "" {
-		// If the environment variable is missing or empty, panic & crash early.
 		panic(tokenEnvVarName + " environment variable is empty")
+	}
+
+	pubDomain := os.Getenv("INSTALLATION_BASE_URL")
+	if pubDomain == "" {
+		panic("INSTALLATION_BASE_URL environment variable is empty")
 	}
 
 	// Create a single-host reverse proxy for the given target URL.
@@ -122,6 +126,10 @@ func NewReverseProxy(tokenEnvVarName string, target *url.URL) *httputil.ReverseP
 		req.Header.Set("Authorization", "Bearer "+t)
 		// Force the request to accept JSON.
 		req.Header.Set("accept", "application/json")
+		
+		// Set the Host header to the target host
+		req.Host = pubDomain
+		req.Header.Set("X-Forwarded-Host", pubDomain)
 	}
 
 	// Initialize in-memory cache to store responses using the cache package we

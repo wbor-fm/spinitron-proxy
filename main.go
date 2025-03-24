@@ -69,7 +69,7 @@ func main() {
         w.Write([]byte("Forced refresh of /api/spins. Cache updated."))
     })
 
-	log.Println("Spinitron-proxy application started on port 8080")
+	log.Println("spinitron-proxy started on port 8080")
 
 	// Listen on port 8080 for incoming HTTP requests. If there's an error, it 
 	// returns a non-nil error (nil means no error).

@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// TODO harden these and test edge cases
+// TODO: harden these and test edge cases
 
 // Returns true if the path points to single resource rather than a collection.
 // Example: `/api/shows/2` or `/images/Persona/16/65/166599-img_profile.jpg`

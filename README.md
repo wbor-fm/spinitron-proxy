@@ -58,8 +58,6 @@ Container-based services are supported by most cloud providers. The memory and C
 
 ## How to Develop
 
-### Requirements
-
 - Go (version specified in `go.mod`)
 - A Spinitron API key
 
