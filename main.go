@@ -3,11 +3,13 @@ package main
 import (
 	"io"
 	"log"
+	"time"
 
 	"net/http"
 	"net/url"
 
 	"github.com/WBOR-91-1-FM/spinitron-proxy/proxy"
+	"github.com/WBOR-91-1-FM/spinitron-proxy/ratelimiter"
 )
 
 const tokenEnvVarName = "SPINITRON_API_KEY"
@@ -25,21 +27,24 @@ func main() {
 	// Create a new reverse proxy that injects the API token.
 	proxy := proxy.NewReverseProxy(tokenEnvVarName, parsedURL)
 
+	// Create a new rate limiter with a maximum of 60 requests per minute.
+	rateLimiter := ratelimiter.NewRateLimiter(60, time.Minute)
+
 	// Normal proxy routes: /api/ and /images/
 	// Register HTTP handlers so that any GET requests to /api/ or /images/ go
 	// through our custom reverse proxy (the proxy we created above).
-	http.Handle("GET /api/", proxy)
-	http.Handle("GET /images/", proxy)
+	http.Handle("GET /api/", rateLimiter.Middleware(proxy))
+	http.Handle("GET /images/", rateLimiter.Middleware(proxy))
 
-	// SSE Endpoint
-	http.HandleFunc("/spin-events", spinEventsHandler)
+	// SSE Endpoint. Is rate limiting necessary for SSE?
+	http.HandleFunc("/spin-events", rateLimiter.MiddlewareFunc(spinEventsHandler))
 
 	// POST route to trigger an internal GET request for /api/spins to force a
 	// refresh of the cache. This is used by Spinitron to trigger a refresh of
 	// the cache when new spins POSTed by a DJ or Automation.
 	// (In the future: may consider adding authentication to this route
 	// to prevent unauthorized access and abuse.)
-	http.HandleFunc("/trigger/spins", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/trigger/spins", rateLimiter.MiddlewareFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 			return
@@ -67,7 +72,7 @@ func main() {
 
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("Forced refresh of /api/spins. Cache updated."))
-	})
+	}))
 
 	log.Println("spinitron-proxy started on port 8080")
 
