@@ -36,7 +36,7 @@ func main() {
 	http.Handle("GET /api/", rateLimiter.Middleware(proxy))
 	http.Handle("GET /images/", rateLimiter.Middleware(proxy))
 
-	// SSE Endpoint. Is rate limiting necessary for SSE?
+	// SSE Endpoint.
 	http.HandleFunc("/spin-events", rateLimiter.MiddlewareFunc(spinEventsHandler))
 
 	// POST route to trigger an internal GET request for /api/spins to force a
