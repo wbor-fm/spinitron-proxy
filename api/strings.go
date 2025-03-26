@@ -22,8 +22,8 @@ func IsResourcePath(path string) bool {
 	return re.MatchString(path)
 }
 
-// Returns true if the path is a collection path like /api/shows (as opposed to 
-// /api/shows/2). It first checks if the path is a resource path to avoid 
+// Returns true if the path is a collection path like /api/shows (as opposed to
+// /api/shows/2). It first checks if the path is a resource path to avoid
 // overlap.
 func IsCollectionPath(path string) bool {
 	if IsResourcePath(path) {

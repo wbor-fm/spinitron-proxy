@@ -59,14 +59,14 @@ func (c *Cache) Get(key string) ([]byte, bool) {
 	return x, y
 }
 
-// Set adds a new key-value pair to the cache with a time-to-live determined by 
+// Set adds a new key-value pair to the cache with a time-to-live determined by
 // getTTL(key) (defined below). Returns true if set was successful.
 // If setting to a key that already exists, the value is updated and the TTL is
 // reset (done by the theine library).
 func (c *Cache) Set(key string, value []byte) bool {
 	tick := time.Now()
-	// Theine supports setting entries with a TTL. 
-	// The '1' argument is for cost (weight) of the entry, used for cache 
+	// Theine supports setting entries with a TTL.
+	// The '1' argument is for cost (weight) of the entry, used for cache
 	// eviction strategies. We don't use it here, so it's set to 1 for all
 	// entries.
 	res := c.tcache.SetWithTTL(key, value, 1, getTTL(key))
@@ -74,7 +74,7 @@ func (c *Cache) Set(key string, value []byte) bool {
 	return res
 }
 
-// MakeCacheKey uses request info to build a consistent cache key. If the path 
+// MakeCacheKey uses request info to build a consistent cache key. If the path
 // is a "collection path," it appends the query parameters.
 func (c *Cache) MakeCacheKey(req *http.Request) string {
 	result := req.URL.Path
@@ -86,14 +86,14 @@ func (c *Cache) MakeCacheKey(req *http.Request) string {
 	// return potentially old data).
 	if api.IsCollectionPath(result) {
 		// Copy the query to avoid mutating the original.
-        q := req.URL.Query()
-        q.Del("forceRefresh") // Remove the param from the key
+		q := req.URL.Query()
+		q.Del("forceRefresh") // Remove the param from the key
 
 		// Encode the query parameters and append them to the path.
-        encoded := q.Encode()
-        if encoded != "" {
-            result += "?" + encoded
-        }
+		encoded := q.Encode()
+		if encoded != "" {
+			result += "?" + encoded
+		}
 	}
 	return result
 }
@@ -123,8 +123,8 @@ func getTTL(key string) time.Duration {
 // This is called when a collection item is removed due to expiration.
 func (c *Cache) evictCollection(name string) {
 	tick := time.Now()
-	// Range over every key in the cache. If the key belongs to the same 
-	// collection name, delete that entry. This is done concurrently via a 
+	// Range over every key in the cache. If the key belongs to the same
+	// collection name, delete that entry. This is done concurrently via a
 	// goroutine (go keyword).
 	c.tcache.Range(func(k string, v []byte) bool {
 		if api.GetCollectionName(k) == name {

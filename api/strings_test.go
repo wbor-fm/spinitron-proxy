@@ -54,7 +54,7 @@ func TestIsNotCollectionPath(t *testing.T) {
 	}
 }
 
-// Checks various path formats to verify correct extraction of the collection 
+// Checks various path formats to verify correct extraction of the collection
 // name.
 func TestGetCollectionName(t *testing.T) {
 	s := []string{

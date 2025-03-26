@@ -30,28 +30,28 @@ type TransportWithCache struct {
 func (t *TransportWithCache) RoundTrip(req *http.Request) (*http.Response, error) {
 
 	// Check if the request has ?forceRefresh=1 to skip cache retrieval
-    forceRefresh := (req.URL.Query().Get("forceRefresh") == "1")
+	forceRefresh := (req.URL.Query().Get("forceRefresh") == "1")
 
 	// Generate a cache key based on the incoming HTTP request.
 	key := t.Cache.MakeCacheKey(req)
 
 	// If forceRefresh is NOT set, try retrieving from the cache as normal.
-    if !forceRefresh {
-		// Attempt to retrieve the response from the cache (e.g. if it was 
-		// cached before). The second return value is a boolean indicating 
+	if !forceRefresh {
+		// Attempt to retrieve the response from the cache (e.g. if it was
+		// cached before). The second return value is a boolean indicating
 		// whether the key was found in the cache.
-        value, found := t.Cache.Get(key)
-        if found {
-            // Construct a new response with the cached data.
-            resp := &http.Response{
-                StatusCode: http.StatusOK,
-                Header:     make(http.Header),
-                Body:       io.NopCloser(bytes.NewReader(value)),
-            }
-            resp.Header.Set("Content-Type", "application/json")
-            return resp, nil // `nil` means no error occurred.
-        }
-    } else {
+		value, found := t.Cache.Get(key)
+		if found {
+			// Construct a new response with the cached data.
+			resp := &http.Response{
+				StatusCode: http.StatusOK,
+				Header:     make(http.Header),
+				Body:       io.NopCloser(bytes.NewReader(value)),
+			}
+			resp.Header.Set("Content-Type", "application/json")
+			return resp, nil // `nil` means no error occurred.
+		}
+	} else {
 		// If forceRefresh is set, log that we're skipping the cache.
 		log.Println("cache.skip", key, "(forceRefresh)")
 	}
@@ -85,15 +85,15 @@ func (t *TransportWithCache) RoundTrip(req *http.Request) (*http.Response, error
 	log.Println("request.made", time.Since(tick), key)
 
 	// Even if forceRefresh was set, we still store the new data in the cache,
-    // so that subsequent requests without forceRefresh can use the updated 
+	// so that subsequent requests without forceRefresh can use the updated
 	// data.
-    t.Cache.Set(key, data)
+	t.Cache.Set(key, data)
 
-    // Return the fresh response to the client.
+	// Return the fresh response to the client.
 	return resp, err
 }
 
-// NewReverseProxy creates a reverse proxy client to forward requests to the 
+// NewReverseProxy creates a reverse proxy client to forward requests to the
 // target (Spinitron API) URL.
 // It also sets up headers for authentication and configures caching.
 func NewReverseProxy(tokenEnvVarName string, target *url.URL) *httputil.ReverseProxy {
@@ -126,7 +126,7 @@ func NewReverseProxy(tokenEnvVarName string, target *url.URL) *httputil.ReverseP
 		req.Header.Set("Authorization", "Bearer "+t)
 		// Force the request to accept JSON.
 		req.Header.Set("accept", "application/json")
-		
+
 		// Set the Host header to the target host
 		req.Host = pubDomain
 		req.Header.Set("X-Forwarded-Host", pubDomain)
@@ -137,7 +137,7 @@ func NewReverseProxy(tokenEnvVarName string, target *url.URL) *httputil.ReverseP
 	c := &cache.Cache{}
 	c.Init()
 
-	// Override the proxy's default (from httputil.ReverseProxy) transport with 
+	// Override the proxy's default (from httputil.ReverseProxy) transport with
 	// our custom caching transport.
 	rp.Transport = &TransportWithCache{
 		Transport: http.DefaultTransport,
