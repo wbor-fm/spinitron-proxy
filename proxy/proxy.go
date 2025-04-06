@@ -8,6 +8,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/WBOR-91-1-FM/spinitron-proxy/cache"
@@ -17,16 +18,20 @@ import (
 // and why do we close resp.Body before reassigning it?
 // What is reassignment?
 
+// OnSpinsUpdate is a callback that, when set, is called with a message
+// after /api/spins is updated.
+var OnSpinsUpdate func(msg string)
+
 // Custom transport that checks a local cache before making an external request.
 // (Unless the request has ?forceRefresh=1, in which case it skips the cache.)
 // It implements http.RoundTripper, which is the interface used by http.Client.
 type TransportWithCache struct {
-	Transport http.RoundTripper // Underlying transport used if a cache miss.
-	Cache     *cache.Cache      // Reference to our cache instance.
+	Transport http.RoundTripper // Underlying transport for cache misses.
+	Cache     *cache.Cache      // In-memory cache.
 }
 
-// RoundTrip is the core method of http.RoundTripper. It is called for each
-// request to check the cache first, then fall back to a *real* network request.
+// RoundTrip checks the cache before making a network request. It caches fresh
+// responses and broadcasts an SSE message if the request is for spins.
 func (t *TransportWithCache) RoundTrip(req *http.Request) (*http.Response, error) {
 
 	// Check if the request has ?forceRefresh=1 to skip cache retrieval
@@ -37,12 +42,7 @@ func (t *TransportWithCache) RoundTrip(req *http.Request) (*http.Response, error
 
 	// If forceRefresh is NOT set, try retrieving from the cache as normal.
 	if !forceRefresh {
-		// Attempt to retrieve the response from the cache (e.g. if it was
-		// cached before). The second return value is a boolean indicating
-		// whether the key was found in the cache.
-		value, found := t.Cache.Get(key)
-		if found {
-			// Construct a new response with the cached data.
+		if value, found := t.Cache.Get(key); found {
 			resp := &http.Response{
 				StatusCode: http.StatusOK,
 				Header:     make(http.Header),
@@ -69,10 +69,7 @@ func (t *TransportWithCache) RoundTrip(req *http.Request) (*http.Response, error
 		return resp, err
 	}
 
-	// Else: the response status is OK, so we can cache the response body.
-	// Read the entire response body into memory so we can store it in cache.
-	var data []byte
-	data, err = io.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		// If there was an error reading the response body, return immediately.
 		return nil, err
@@ -89,13 +86,18 @@ func (t *TransportWithCache) RoundTrip(req *http.Request) (*http.Response, error
 	// data.
 	t.Cache.Set(key, data)
 
-	// Return the fresh response to the client.
+	// If the request is for the spins collection, broadcast an SSE message.
+	if strings.HasPrefix(req.URL.Path, "/api/spins") {
+		if OnSpinsUpdate != nil {
+			OnSpinsUpdate("new spin data")
+		}
+	}
+
 	return resp, err
 }
 
-// NewReverseProxy creates a reverse proxy client to forward requests to the
-// target (Spinitron API) URL.
-// It also sets up headers for authentication and configures caching.
+// NewReverseProxy creates a reverse proxy client that forwards requests to the
+// target (Spinitron API) URL. It also sets up authentication and caching.
 func NewReverseProxy(tokenEnvVarName string, target *url.URL) *httputil.ReverseProxy {
 	// Retrieve the Spinitron API token from the environment.
 	t := os.Getenv(tokenEnvVarName)

@@ -25,7 +25,8 @@ func main() {
 	parsedURL, _ := url.Parse(spinitronBaseURL)
 
 	// Create a new reverse proxy that injects the API token.
-	proxy := proxy.NewReverseProxy(tokenEnvVarName, parsedURL)
+	revProxy := proxy.NewReverseProxy(tokenEnvVarName, parsedURL)
+	proxy.OnSpinsUpdate = BroadcastSpinMessage
 
 	// Create a new rate limiter with a maximum of 60 requests per minute.
 	rateLimiter := ratelimiter.NewRateLimiter(60, time.Minute)
@@ -33,8 +34,8 @@ func main() {
 	// Normal proxy routes: /api/ and /images/
 	// Register HTTP handlers so that any GET requests to /api/ or /images/ go
 	// through our custom reverse proxy (the proxy we created above).
-	http.Handle("GET /api/", rateLimiter.Middleware(proxy))
-	http.Handle("GET /images/", rateLimiter.Middleware(proxy))
+	http.Handle("GET /api/", rateLimiter.Middleware(revProxy))
+	http.Handle("GET /images/", rateLimiter.Middleware(revProxy))
 
 	// SSE Endpoint.
 	http.HandleFunc("/spin-events", rateLimiter.MiddlewareFunc(spinEventsHandler))

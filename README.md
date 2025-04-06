@@ -48,7 +48,7 @@ Container-based services are supported by most cloud providers. The memory and C
    - `NETWORK_NAME` (default: `spinitron-proxy-network`).
    - `APP_PORT` (defaults to exposing `4001` on the host, speaking to `8080` in the container)
    - `DOCKER_TOOL` (default: `docker`, but also works for `podman`)
-2. Set the Spinitron API key variable in a `.env` file
+2. Set the Spinitron API key and base URL variables in a `.env` file
 3. Run: `make`
 
 ## Related Projects
