@@ -93,7 +93,7 @@ func (rl *RateLimiter) Middleware(next http.Handler) http.Handler {
 			// Return a 429 Too Many Requests status code.
 			http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
 
-			log.Printf("Rate limit exceeded for %s on %s\n", r.RemoteAddr, r.URL.Path)
+			log.Printf("Rate limit exceeded by %s (%s)\n", r.RemoteAddr, r.URL.Path)
 			return
 		}
 		next.ServeHTTP(w, r)
