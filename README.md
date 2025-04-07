@@ -64,3 +64,7 @@ Container-based services are supported by most cloud providers. The memory and C
 1. Make changes to the app
 2. Run `SPINITRON_API_KEY=XXX go run .`
 3. Make [some requests](https://spinitron.github.io/v2api/) e.g. `curl "localhost:8080/api/spins"`
+
+## Known Issues
+
+- After a spin expires in the cache, a duplicate SSE event is broadcast if a triggered broadcast was sent before the expiration. This is because the code is written to broacast a SSE event for every update to the spins cache, and after a spin expires, the app makes a request to the Spinitron API to get the latest spins. This is a TODO. In the meantime, we handle duplicate spins in our clients.
