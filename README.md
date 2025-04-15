@@ -48,8 +48,25 @@ Container-based services are supported by most cloud providers. The memory and C
    - `NETWORK_NAME` (default: `spinitron-proxy-network`).
    - `APP_PORT` (defaults to exposing `4001` on the host, speaking to `8080` in the container)
    - `DOCKER_TOOL` (default: `docker`, but also works for `podman`)
-2. Set the Spinitron API key and base URL variables in a `.env` file
-3. Run: `make`
+2. Set the Spinitron API key and base URL variables in a `.env` file:
+
+    Copy the `.env.sample` file to `.env` and set the following variables:
+
+    ```bash
+    SPINITRON_API_KEY=your_spinitron_api_key
+    INSTALLATION_BASE_URL=http://your_spinitron_installation_base_url
+    ```
+
+3. Run: `make` (after setting changing the environment variables in the `Makefile` as desired)
+4. The app will be available at `http://your_spinitron_installation_base_url:4001` (or whatever port you set in the `Makefile`).
+
+  Check that it's working by making some requests:
+
+  ```bash
+  curl "http://your_spinitron_installation_base_url:4001/api/spins"
+  ```
+
+  You should see a JSON response with the latest spins.
 
 ## Related Projects
 
@@ -62,8 +79,16 @@ Container-based services are supported by most cloud providers. The memory and C
 - A Spinitron API key
 
 1. Make changes to the app
-2. Run `SPINITRON_API_KEY=XXX go run .`
+2. Run `SPINITRON_API_KEY=XXX INSTALLATION_BASE_URL=localhost go run .`
 3. Make [some requests](https://spinitron.github.io/v2api/) e.g. `curl "localhost:8080/api/spins"`
+
+## How to Test
+
+Run:
+
+```bash
+go test -v ./...
+```
 
 ## Known Issues
 
