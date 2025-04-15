@@ -6,33 +6,30 @@ import (
 	"strings"
 )
 
-// TODO: harden these and test edge cases
+var (
+    // For /api/: e.g. /api/shows/123 plus optional ?query
+    apiResourceRegex = regexp.MustCompile(`^/api/\w+/\d+(?:\?.*)?$`)
 
-// Returns true if the path points to single resource rather than a collection.
-// Example: `/api/shows/2` or `/images/Persona/16/65/166599-img_profile.jpg`
+    // For /images/: allow multiple subdirectories, final segment must contain at least one digit
+    // e.g. /images/Persona/16/65/166599-img_profile.225x225.jpg?v=123
+    // It matches zero or more non-slash chars, at least one digit, then zero or more non-slash chars.
+    imagesResourceRegex = regexp.MustCompile(`^/images/(?:[^/]+/)*[^/]*[0-9]+[^/]*(?:\?.*)?$`)
+
+    // For /api/: e.g. /api/shows plus optional ?query
+    apiCollectionRegex = regexp.MustCompile(`^/api/\w+(?:\?.*)?$`)
+)
+
+// IsResourcePath returns true if it matches either the /api/ resource pattern or the /images/ resource pattern.
 func IsResourcePath(path string) bool {
-	// Matches any path starting with /api/ or /images/ followed by
-	// a word and then some digits or additional path segments.
-	// Would not match /api/shows or /images/Persona alone.
-	// `re` is a regular expression object that can be used to match strings.
-	// `_` is a blank identifier, used to ignore the error value returned by
-	// `regexp.Compile` (since we know the regex is valid).
-	re, _ := regexp.Compile(`\/(api|images)\/\w+\/\d+.*`)
-	// MatchString returns true if the regex matches the input string.
-	return re.MatchString(path)
+    return apiResourceRegex.MatchString(path) || imagesResourceRegex.MatchString(path)
 }
 
-// Returns true if the path is a collection path like /api/shows (as opposed to
-// /api/shows/2). It first checks if the path is a resource path to avoid
-// overlap.
+// IsCollectionPath returns true if it’s a valid /api/ collection path, excluding anything recognized as a resource path.
 func IsCollectionPath(path string) bool {
 	if IsResourcePath(path) {
 		return false
 	}
-	// Then check if it's an /api/ path with some word following it.
-	// This would match /api/shows but not /api or /api/.
-	re, _ := regexp.Compile(`\/api\/\w+.*`)
-	return re.MatchString(path)
+	return apiCollectionRegex.MatchString(path)
 }
 
 // Extracts the primary path segment right after "/api/".

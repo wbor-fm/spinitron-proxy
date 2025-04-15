@@ -22,6 +22,37 @@ func TestIsResourcePath(t *testing.T) {
 	}
 }
 
+func TestIsResourcePathEdgeCases(t *testing.T) {
+	paths := []string{
+		"",
+		"/",
+		"/api",
+		"/api/",
+		"/api/shows/",
+		"/api/shows//2",
+		"/images/Persona/noDigits",
+		"/api/spins/abc",
+		"api/shows/2",
+		"/api/spins/4?someparam=123",
+		"/api/spins/4/edit",
+	}
+
+	for _, p := range paths {
+		got := IsResourcePath(p)
+		// We only expect certain ones to be true.
+		switch p {
+		case "/api/spins/4?someparam=123":
+			if !got {
+				t.Errorf("IsResourcePath(%q) returned false; want true", p)
+			}
+		default:
+			if got {
+				t.Errorf("IsResourcePath(%q) returned true; want false", p)
+			}
+		}
+	}
+}
+
 // Checks known collection paths and expects them to be identified correctly.
 func TestIsCollectionPath(t *testing.T) {
 	known := []string{
@@ -35,6 +66,26 @@ func TestIsCollectionPath(t *testing.T) {
 		result := IsCollectionPath(name)
 		if !result {
 			t.Errorf("IsCollectionPath(%s) = %t; want true", name, result)
+		}
+	}
+}
+
+func TestIsCollectionPathEdgeCases(t *testing.T) {
+	paths := []string{
+		"",
+		"/",
+		"/api",
+		"/api/",
+		"/api//",
+		"/images/Persona",
+		"api/shows",
+		"/api/shows//",
+	}
+
+	for _, p := range paths {
+		got := IsCollectionPath(p)
+		if got {
+			t.Errorf("IsCollectionPath(%q) returned true; want false", p)
 		}
 	}
 }
@@ -73,6 +124,24 @@ func TestGetCollectionName(t *testing.T) {
 		result := GetCollectionName(name)
 		if result != "foo" {
 			t.Errorf("GetCollectionName(%s) = %s; want foo", name, result)
+		}
+	}
+}
+
+func TestGetCollectionNameEdgeCases(t *testing.T) {
+	tests := map[string]string{
+		"":            "",
+		"/":           "",
+		"/api/":       "",
+		"/api//":      "",
+		"api/shows":   "shows",
+		"/api/shows//2": "shows",
+	}
+
+	for input, want := range tests {
+		got := GetCollectionName(input)
+		if got != want {
+			t.Errorf("GetCollectionName(%q) = %q; want %q", input, got, want)
 		}
 	}
 }
