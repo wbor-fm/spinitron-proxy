@@ -70,6 +70,7 @@ func spinEventsHandler(w http.ResponseWriter, r *http.Request) {
 func BroadcastSpinMessage(msg string) {
 	sseClientsM.Lock()
 	defer sseClientsM.Unlock()
+	log.Println("sse.broadcast", len(sseClients))
 	for _, c := range sseClients {
 		c <- "data: " + msg
 	}

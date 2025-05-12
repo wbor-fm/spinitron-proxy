@@ -8,7 +8,6 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/WBOR-91-1-FM/spinitron-proxy/cache"
@@ -38,7 +37,7 @@ func (t *TransportWithCache) RoundTrip(req *http.Request) (*http.Response, error
 	forceRefresh := (req.URL.Query().Get("forceRefresh") == "1")
 
 	// Generate a cache key based on the incoming HTTP request.
-	key := t.Cache.MakeCacheKey(req)
+	key := t.Cache.MakeCacheKey(req) // `key` is the actual cache key.
 
 	// If forceRefresh is NOT set, try retrieving from the cache as normal.
 	if !forceRefresh {
@@ -86,9 +85,14 @@ func (t *TransportWithCache) RoundTrip(req *http.Request) (*http.Response, error
 	// data.
 	t.Cache.Set(key, data)
 
-	// If the request is for the spins collection, broadcast an SSE message.
-	if strings.HasPrefix(req.URL.Path, "/api/spins") {
+	// Only broadcast an SSE if the canonical "/api/spins" cache entry was updated.
+	// The `key` variable is the actual cache key used, after processing things like 'forceRefresh'.
+	// For the trigger's internal GET "/api/spins?forceRefresh=1", the key becomes "/api/spins".
+	// For a client request to "/api/spins", the key is also "/api/spins".
+	// For a client request to "/api/spins?count=10", the key is "/api/spins?count=10", which won't match.
+	if key == "/api/spins" {
 		if OnSpinsUpdate != nil {
+			log.Printf("proxy.OnSpinsUpdate triggered for canonical key: %s", key)
 			OnSpinsUpdate("new spin data")
 		}
 	}
@@ -100,8 +104,8 @@ func (t *TransportWithCache) RoundTrip(req *http.Request) (*http.Response, error
 // target (Spinitron API) URL. It also sets up authentication and caching.
 func NewReverseProxy(tokenEnvVarName string, target *url.URL) *httputil.ReverseProxy {
 	// Retrieve the Spinitron API token from the environment.
-	t := os.Getenv(tokenEnvVarName)
-	if t == "" {
+	tkn := os.Getenv(tokenEnvVarName)
+	if tkn == "" {
 		panic(tokenEnvVarName + " environment variable is empty")
 	}
 
@@ -125,7 +129,7 @@ func NewReverseProxy(tokenEnvVarName string, target *url.URL) *httputil.ReverseP
 		// Call the original director to set the X-Forwarded-* headers, etc.
 		d(req)
 		// Inject the "Authorization" header with our bearer token for API access.
-		req.Header.Set("Authorization", "Bearer "+t)
+		req.Header.Set("Authorization", "Bearer "+tkn)
 		// Force the request to accept JSON.
 		req.Header.Set("accept", "application/json")
 

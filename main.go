@@ -68,9 +68,6 @@ func main() {
 		// response status is OK (handled in proxy.go).
 		_, _ = io.ReadAll(resp.Body)
 
-		BroadcastSpinMessage("new spin data")
-		log.Println("sse.broadcast", len(sseClients))
-
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("Forced refresh of /api/spins. Cache updated."))
 	}))
