@@ -28,11 +28,15 @@ build:
 start: run
 
 run: stop
-	$(DOCKER_TOOL) run --platform=linux/amd64 -d --restart unless-stopped \
+	$(DOCKER_TOOL) run --platform=linux/amd64 -d \
+		--name $(CONTAINER_NAME) \
+		--restart unless-stopped \
 		--env-file .env \
 		-p $(APP_PORT):8080 \
 		--network $(NETWORK_NAME) \
-		--name $(CONTAINER_NAME) \
+		--log-driver json-file \
+		--log-opt max-size=30m \
+		--log-opt max-file=30 \
 		$(IMAGE_NAME)
 
 stop:
