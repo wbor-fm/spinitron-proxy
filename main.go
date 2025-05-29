@@ -18,8 +18,7 @@ const spinitronBaseURL = "https://spinitron.com"
 // healthzHandler responds with a simple OK for health checks.
 func healthzHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
-	// Optional: w.Write([]byte("OK"))
-	// log.Println("healthz.ok") // You can uncomment this for debugging health checks
+	w.Write([]byte("OK"))
 }
 
 func main() {
