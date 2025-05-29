@@ -15,6 +15,13 @@ import (
 const tokenEnvVarName = "SPINITRON_API_KEY"
 const spinitronBaseURL = "https://spinitron.com"
 
+// healthzHandler responds with a simple OK for health checks.
+func healthzHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	// Optional: w.Write([]byte("OK"))
+	// log.Println("healthz.ok") // You can uncomment this for debugging health checks
+}
+
 func main() {
 	// Parse the base URL for Spinitron using the net/url package.
 	// Parse() returns a URL struct and an error if there is one, but here we're
@@ -30,6 +37,9 @@ func main() {
 
 	// Create a new rate limiter with a maximum of 60 requests per minute.
 	rateLimiter := ratelimiter.NewRateLimiter(60, time.Minute)
+
+	// Register the health check handler for the /healthz endpoint, not rate-limited.
+	http.HandleFunc("/healthz", healthzHandler)
 
 	// Normal proxy routes: /api/ and /images/
 	// Register HTTP handlers so that any GET requests to /api/ or /images/ go
@@ -72,7 +82,7 @@ func main() {
 		w.Write([]byte("Forced refresh of /api/spins. Cache updated."))
 	}))
 
-	log.Println("spinitron-proxy started on port 8080")
+	log.Println("spinitron-proxy started on port 8080, health check available at /healthz")
 
 	// Listen on port 8080 for incoming HTTP requests. If there's an error, it
 	// returns a non-nil error (nil means no error).
