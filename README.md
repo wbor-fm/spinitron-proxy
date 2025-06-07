@@ -13,7 +13,7 @@ With that in mind, this little server...
 - forwards requests from a client (e.g. a mobile app) to Spinitron with the developer's API key protected
 - is read-only i.e. it only accepts GET requests*
 - includes an in-memory cache mechanism optimized for <https://github.com/dctalbot/spinitron-mobile-app>
-- *exposes a POST endpoint for use by Spinitron to let the app know when a new spin arrives in real-time
+- *exposes a POST endpoint (`/trigger/spins`) for use by Spinitron to let the app know when a new spin arrives in real-time. This can be secured with a password.
 - hosts a SSE stream (`/spin-events`) to let downstream consumers know when new spins are posted, in real-time
   - works with [watchdog services](https://github.com/WBOR-91-1-FM/wbor-api-watchdog) to forward new spins to a RabbitMQ exchange
 
@@ -55,7 +55,16 @@ Container-based services are supported by most cloud providers. The memory and C
     ```bash
     SPINITRON_API_KEY=your_spinitron_api_key
     INSTALLATION_BASE_URL=http://your_spinitron_installation_base_url
+    TRIGGER_PASSWORD=a_secure_password # optional, for /trigger/spins endpoint
     ```
+
+    To generate a password, you can use a command like:
+
+    ```bash
+    python -c "import secrets; print(secrets.token_urlsafe(24))"
+    ```
+
+    Copy the generated password into the `TRIGGER_PASSWORD` variable in your `.env` file.
 
 3. Run: `make` (after setting changing the environment variables in the `Makefile` as desired)
 4. The app will be available at `http://your_spinitron_installation_base_url:4001` (or whatever port you set in the `Makefile`).
@@ -67,6 +76,18 @@ Container-based services are supported by most cloud providers. The memory and C
   ```
 
   You should see a JSON response with the latest spins.
+
+### Spinitron Metadata Push
+
+To have Spinitron notify the proxy when a new spin is logged, you can use the `/trigger/spins` endpoint. In your Spinitron admin settings, under "Metadata Push", configure a channel with the following URL:
+
+`POST https://your_proxy_url/trigger/spins`
+
+To secure this endpoint, set the `TRIGGER_PASSWORD` in your `.env` file. Then, in Spinitron, use the `%pw%` token in the URL like this:
+
+`POST https://your_proxy_url/trigger/spins?pw=%pw%`
+
+Set the password that matches the `TRIGGER_PASSWORD` you set in the "Password" field of the Spinitron Metadata Push channel settings.
 
 ## Related Projects
 

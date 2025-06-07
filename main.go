@@ -3,6 +3,7 @@ package main
 import (
 	"io"
 	"log"
+	"os"
 	"time"
 
 	"net/http"
@@ -37,6 +38,9 @@ func main() {
 	// Create a new rate limiter with a maximum of 60 requests per minute.
 	rateLimiter := ratelimiter.NewRateLimiter(60, time.Minute)
 
+	// Get the trigger password from environment variables
+	triggerPassword := os.Getenv("TRIGGER_PASSWORD")
+
 	// Register the health check handler for the /healthz endpoint, not rate-limited.
 	http.HandleFunc("/healthz", healthzHandler)
 
@@ -52,13 +56,22 @@ func main() {
 	// POST route to trigger an internal GET request for /api/spins to force a
 	// refresh of the cache. This is used by Spinitron to trigger a refresh of
 	// the cache when new spins POSTed by a DJ or Automation.
-	// (In the future: may consider adding authentication to this route
-	// to prevent unauthorized access and abuse.)
 	http.HandleFunc("/trigger/spins", rateLimiter.MiddlewareFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 			return
 		}
+
+		// If a trigger password is configured, require it for this endpoint
+		if triggerPassword != "" {
+				// Spinitron sends the password in the 'pw' query parameter
+				if r.URL.Query().Get("pw") != triggerPassword {
+					log.Println("trigger.spins unauthorized")
+					http.Error(w, "Unauthorized", http.StatusUnauthorized)
+					return
+				}
+			}
+
 		log.Println("trigger.spins")
 
 		// This request goes back into our own server, ensuring the proxy logic
