@@ -65,7 +65,7 @@ func main() {
 		// If a trigger password is configured, require it for this endpoint
 		if triggerPassword != "" {
 				// Spinitron sends the password in the 'pw' query parameter
-				if r.URL.Query().Get("pw") != triggerPassword {
+				if r.FormValue("pw") != triggerPassword {
 					log.Println("trigger.spins unauthorized")
 					http.Error(w, "Unauthorized", http.StatusUnauthorized)
 					return
