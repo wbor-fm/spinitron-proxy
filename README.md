@@ -10,12 +10,12 @@ Developers using the Spinitron API must adhere to the following terms of service
 
 With that in mind, this little server...
 
-- forwards requests from a client (e.g. a mobile app) to Spinitron with the developer's API key
-- is read-only i.e. it only services GET requests
+- forwards requests from a client (e.g. a mobile app) to Spinitron with the developer's API key protected
+- is read-only i.e. it only accepts GET requests*
 - includes an in-memory cache mechanism optimized for <https://github.com/dctalbot/spinitron-mobile-app>
-- exposes a POST endpoint that Spinitron can use to let the app know when a new spin arrives
-- hosts a SSE stream to let downstream consumers know when new spins are posted, in real-time
-  - works with [our watchdog service](https://github.com/WBOR-91-1-FM/wbor-api-watchdog) to forward new spins to a RabbitMQ exchange
+- *exposes a POST endpoint for use by Spinitron to let the app know when a new spin arrives in real-time
+- hosts a SSE stream (`/spin-events`) to let downstream consumers know when new spins are posted, in real-time
+  - works with [watchdog services](https://github.com/WBOR-91-1-FM/wbor-api-watchdog) to forward new spins to a RabbitMQ exchange
 
 ## Cache strategy
 
@@ -92,7 +92,7 @@ go test -v ./...
 
 ## Known Issues
 
-- **SSE Event Specificity:** Server-Sent Events (SSE) for new spins are specifically tied to updates of the canonical `/api/spins` cache entry (i.e., the spins endpoint without additional query parameters). This reduces the number of duplicate SSE notifications. Consequently, updates to more specific spin queries (e.g., `/api/spins?count=10&fields=artist`) do not directly trigger their own SSEs. Consumers of the SSE stream should expect notifications primarily when the main `/api/spins` data is refreshed.
-- **Client-Side Idempotency:** While the proxy tries to minimize redundant SSEs, it's a good practice for clients consuming these events to be idempotent – that is, designed to handle potential multiple signals for the same underlying data update without adverse effects (e.g., by checking the latest spin ID before processing).
+- **SSE Event Specificity:** Server-Sent Events (SSE) for new spins are specifically tied to updates of the canonical `/api/spins` cache entry (i.e., the spins endpoint without additional query parameters). This reduces the number of duplicate SSE notifications. Consequently, updates to more specific spin queries (e.g., `/api/spins?count=10&fields=artist`) do *not* directly trigger their own SSEs. Consumers of the SSE stream should expect notifications primarily when the main `/api/spins` data is refreshed.
+- **Client-Side Idempotency:** While the proxy tries to minimize redundant SSEs, it's a good practice for clients consuming these events to be idempotent – that is, designed to handle multiple signals for the same underlying data update without adverse effects (e.g., by checking the latest spin ID and de-duping before processing).
 - **SSE Connection Scalability:** The proxy maintains an active connection and a Go channel for each connected SSE client. For deployments with an extremely large number of concurrent SSE listeners, resource usage (memory, connection handling) should be monitored. Alternative or supplementary solutions like a dedicated message broker might be considered for very high-scale scenarios.
 - **Cache TTL for `/api/spins`:** The default TTL for the `/api/spins` cache is 30 seconds. If no new spin is posted and no trigger event occurs, clients will not receive an SSE until this cache naturally expires and is subsequently repopulated by a client request to `/api/spins`. The `/trigger/spins` endpoint can be used for more immediate cache refreshes and SSE broadcasts.
