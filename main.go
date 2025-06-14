@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/subtle"
 	"io"
 	"log"
 	"os"
@@ -64,13 +65,17 @@ func main() {
 
 		// If a trigger password is configured, require it for this endpoint
 		if triggerPassword != "" {
-				// Spinitron sends the password in the 'pw' query parameter
-				if r.FormValue("pw") != triggerPassword {
-					log.Println("trigger.spins unauthorized")
-					http.Error(w, "Unauthorized", http.StatusUnauthorized)
-					return
-				}
+			// Spinitron sends the password in the POST body as a form value
+			providedPassword := []byte(r.FormValue("pw"))
+			secretPassword := []byte(triggerPassword)
+			
+			//  Use constant-time comparison to prevent timing attacks
+			if subtle.ConstantTimeCompare(providedPassword, secretPassword) != 1 {
+				log.Println("trigger.spins unauthorized: password mismatch")
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
 			}
+		}
 
 		log.Println("trigger.spins")
 
