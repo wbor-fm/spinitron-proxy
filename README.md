@@ -111,7 +111,7 @@ Run:
 go test -v ./...
 ```
 
-## Known Issues
+## Known Issues/Quirks
 
 - **SSE Event Specificity:** Server-Sent Events (SSE) for new spins are specifically tied to updates of the canonical `/api/spins` cache entry (i.e., the spins endpoint without additional query parameters). This reduces the number of duplicate SSE notifications. Consequently, updates to more specific spin queries (e.g., `/api/spins?count=10&fields=artist`) do *not* directly trigger their own SSEs. Consumers of the SSE stream should expect notifications primarily when the main `/api/spins` data is refreshed.
 - **Client-Side Idempotency:** While the proxy tries to minimize redundant SSEs, it's a good practice for clients consuming these events to be idempotent – that is, designed to handle multiple signals for the same underlying data update without adverse effects (e.g., by checking the latest spin ID and de-duping before processing).
