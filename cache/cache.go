@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/WBOR-91-1-FM/spinitron-proxy/api"
+	"github.com/wbor-fm/spinitron-proxy/api"
 	"github.com/Yiling-J/theine-go"
 )
 

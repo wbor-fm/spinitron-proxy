@@ -15,7 +15,7 @@ With that in mind, this little server...
 - includes an in-memory cache mechanism optimized for <https://github.com/dctalbot/spinitron-mobile-app>
 - *exposes a POST endpoint (`/trigger/spins`) for use by Spinitron to let the app know when a new spin arrives in real-time. This can be secured with a password.
 - hosts a SSE stream (`/spin-events`) to let downstream consumers know when new spins are posted, in real-time
-  - works with [watchdog services](https://github.com/WBOR-91-1-FM/wbor-api-watchdog) to forward new spins to a RabbitMQ exchange
+  - works with [watchdog services](https://github.com/wbor-fm/wbor-api-watchdog) to forward new spins to a RabbitMQ exchange
 
 ## Cache strategy
 

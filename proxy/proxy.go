@@ -10,7 +10,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/WBOR-91-1-FM/spinitron-proxy/cache"
+	"github.com/wbor-fm/spinitron-proxy/cache"
 )
 
 // Lingering questions: what is `io.NopCloser(bytes.NewReader(value)),`

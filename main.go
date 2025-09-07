@@ -10,8 +10,8 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/WBOR-91-1-FM/spinitron-proxy/proxy"
-	"github.com/WBOR-91-1-FM/spinitron-proxy/ratelimiter"
+	"github.com/wbor-fm/spinitron-proxy/proxy"
+	"github.com/wbor-fm/spinitron-proxy/ratelimiter"
 )
 
 const tokenEnvVarName = "SPINITRON_API_KEY"
